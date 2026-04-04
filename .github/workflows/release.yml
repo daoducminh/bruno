@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. 1.34.0)'
+        required: true
+        type: string
+
+jobs:
+  build-and-release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Setup repo
+        run: npm run setup
+
+      - name: Update Versions
+        run: |
+          VERSION=${{ github.event.inputs.version }}
+          # Update root and workspaces
+          npm version $VERSION --no-git-tag-version --allow-same-version
+          npm version $VERSION --workspace=packages/bruno-electron --no-git-tag-version --allow-same-version
+          npm version $VERSION --workspace=packages/bruno-app --no-git-tag-version --allow-same-version
+
+      - name: Build Web App
+        run: npm run build:web
+
+      - name: Build Electron Debian
+        run: npm run build:electron:deb
+
+      - name: Create or Update Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          name: v${{ github.event.inputs.version }}
+          generate_release_notes: true
+          files: |
+            packages/bruno-electron/out/*.deb
