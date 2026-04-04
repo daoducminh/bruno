@@ -8,6 +8,7 @@ const config = {
     buildResources: 'resources',
     output: 'out'
   },
+  publish: null,
   extraResources: [
     {
       from: 'resources/data/sample-collection.json',
